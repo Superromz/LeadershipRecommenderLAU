@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+venv/
+.venv/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# macOS
+.DS_Store
+
+# Model artifacts (large files — store separately if needed)
+*.pkl
+*.joblib
+
+# IDE
+.vscode/
+.idea/
