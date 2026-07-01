@@ -16,8 +16,6 @@ export default function Register() {
   const [form, setForm] = useState({
     email: '',
     password: '',
-    first_name: '',
-    last_name: '',
     country: '',
     age: '',
     gender: '',
@@ -37,6 +35,7 @@ export default function Register() {
     try {
       await register({
         ...form,
+        username: form.email.split('@')[0] + '_' + Date.now(),
         age: Number(form.age),
         work_experience_years: Number(form.work_experience_years),
       })
@@ -102,10 +101,6 @@ export default function Register() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            {field('First name', 'first_name', 'text', 'Jane')}
-            {field('Last name', 'last_name', 'text', 'Doe')}
-          </div>
           {field('Email', 'email', 'email', 'you@example.com')}
           {field('Password', 'password', 'password', '••••••••')}
 
