@@ -1,5 +1,21 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-body { @apply bg-gray-50 text-gray-900 antialiased; }
+@layer base {
+  body {
+    @apply bg-slate-50 text-gray-900 antialiased;
+  }
+}
+
+@layer utilities {
+  .gradient-brand {
+    background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+  }
+  .gradient-transformational { background: linear-gradient(135deg, #4F46E5, #7C3AED); }
+  .gradient-transactional    { background: linear-gradient(135deg, #0EA5E9, #0284C7); }
+  .gradient-supportive       { background: linear-gradient(135deg, #10B981, #059669); }
+  .gradient-laissez          { background: linear-gradient(135deg, #F59E0B, #D97706); }
+}
