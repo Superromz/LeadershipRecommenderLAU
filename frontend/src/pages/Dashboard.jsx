@@ -17,6 +17,7 @@ const STYLE_CFG = {
   'Laissez-Faire':  { color: '#F59E0B', light: '#FFFBEB' },
 }
 
+// Handles both lowercase (radar keys) and Title_Case (SHAP engine output)
 const FEATURE_LABELS = {
   role_assumption:          'Role Assumption',
   production_emphasis:      'Production Emphasis',
@@ -24,7 +25,14 @@ const FEATURE_LABELS = {
   tolerance_of_uncertainty: 'Tolerance of Uncertainty',
   integration:              'Integration',
   consideration:            'Consideration',
+  Role_Assumption:          'Role Assumption',
+  Production_Emphasis:      'Production Emphasis',
+  Initiation_of_Structure:  'Init. of Structure',
+  Tolerance_of_Uncertainty: 'Tolerance of Uncertainty',
+  Integration:              'Integration',
+  Consideration:            'Consideration',
 }
+const featureLabel = (key) => FEATURE_LABELS[key] ?? key.replace(/_/g, ' ')
 
 // ── SVG Icon set ─────────────────────────────────────────────────────────────
 const Icon = {
@@ -172,7 +180,7 @@ export default function Dashboard() {
 
   // SHAP frequency bar
   const shapFreqData = personal.shap_frequency.map((s) => ({
-    name: FEATURE_LABELS[s.feature] ?? s.feature,
+    name: featureLabel(s.feature),
     count: s.count,
   }))
 
@@ -244,7 +252,7 @@ export default function Dashboard() {
             <StatCard
               icon={Icon.lightning}
               label="SHAP Key Driver"
-              value={personal.shap_frequency[0] ? FEATURE_LABELS[personal.shap_frequency[0].feature]?.split(' ')[0] : '—'}
+              value={personal.shap_frequency[0] ? featureLabel(personal.shap_frequency[0].feature).split(' ')[0] : '—'}
               sub="Most influential behaviour"
               color="#F59E0B" light="#FFFBEB"
             />

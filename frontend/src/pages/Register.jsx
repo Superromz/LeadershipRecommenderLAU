@@ -132,7 +132,7 @@ export default function Register() {
                   <label className={labelCls}>Education level</label>
                   <select name="education_level" value={form.education_level} onChange={handleChange} required className={inputCls}>
                     <option value="">Select…</option>
-                    {['Bachelor', 'Master', 'PhD', 'Other'].map((e) => <option key={e}>{e}</option>)}
+                    {['Bachelor', 'Master', 'PhD', 'High School'].map((e) => <option key={e}>{e}</option>)}
                   </select>
                 </div>
               </div>

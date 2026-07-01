@@ -23,7 +23,7 @@ class User(AbstractUser):
         ('Bachelor', 'Bachelor'),
         ('Master', 'Master'),
         ('PhD', 'PhD'),
-        ('Other', 'Other'),
+        ('High School', 'High School'),
     ]
     POSITION_CHOICES = [
         ('Junior', 'Junior'),

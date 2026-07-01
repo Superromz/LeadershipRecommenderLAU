@@ -16,7 +16,7 @@ class AssessmentSubmitSerializer(serializers.Serializer):
     country               = serializers.ChoiceField(choices=['USA', 'JPN', 'BRA', 'NGA', 'IND'])
     age                   = serializers.IntegerField(min_value=16, max_value=80)
     gender                = serializers.ChoiceField(choices=['Male', 'Female', 'Other'])
-    education_level       = serializers.ChoiceField(choices=['Bachelor', 'Master', 'PhD', 'Other'])
+    education_level       = serializers.ChoiceField(choices=['Bachelor', 'Master', 'PhD', 'High School'])
     work_experience_years = serializers.FloatField(min_value=0.0, max_value=50.0)
     position_level        = serializers.ChoiceField(choices=['Junior', 'Mid', 'Senior'])
 
