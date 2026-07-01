@@ -3,11 +3,45 @@ import { useNavigate } from 'react-router-dom'
 import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
 
+// SVG icons — one per behavioural dimension
+const DIM_ICONS = {
+  role_assumption: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+    </svg>
+  ),
+  production_emphasis: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M7 17l5-5 3 3 5-5" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M17 7h3v3" />
+    </svg>
+  ),
+  initiation_of_structure: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+    </svg>
+  ),
+  tolerance_of_uncertainty: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+    </svg>
+  ),
+  integration: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-5.356-3.772M9 20H4v-2a4 4 0 015.356-3.772M15 7a4 4 0 11-8 0 4 4 0 018 0zm6 4a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  ),
+  consideration: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+    </svg>
+  ),
+}
+
 const QUESTIONS = [
   {
     key: 'role_assumption',
     label: 'Role Assumption',
-    icon: '🎯',
     scenario: 'When joining a new team or project, I naturally step up, define responsibilities, and take ownership of the leadership role.',
     low: 'Prefer others to lead',
     high: 'Always take the lead',
@@ -15,7 +49,6 @@ const QUESTIONS = [
   {
     key: 'production_emphasis',
     label: 'Production Emphasis',
-    icon: '📈',
     scenario: 'I consistently push myself and others to meet performance targets, prioritising output quality and productivity above other considerations.',
     low: 'Results are secondary',
     high: 'Results-driven at all times',
@@ -23,7 +56,6 @@ const QUESTIONS = [
   {
     key: 'initiation_of_structure',
     label: 'Initiation of Structure',
-    icon: '🗂️',
     scenario: 'I establish clear tasks, timelines, and operating procedures so that team members always know exactly what is expected of them.',
     low: 'Flexible, unstructured',
     high: 'Highly structured & planned',
@@ -31,7 +63,6 @@ const QUESTIONS = [
   {
     key: 'tolerance_of_uncertainty',
     label: 'Tolerance of Uncertainty',
-    icon: '🛡️',
     scenario: 'I remain calm, decisive, and effective even when facing ambiguous situations or unexpected changes to plans.',
     low: 'Prefer certainty & stability',
     high: 'Thrive in ambiguity',
@@ -39,15 +70,13 @@ const QUESTIONS = [
   {
     key: 'integration',
     label: 'Integration',
-    icon: '🤝',
     scenario: 'I actively work to mediate conflicts, build consensus, and bring diverse team members together toward a shared goal.',
-    low: 'Let team resolve it',
+    low: 'Let the team resolve it',
     high: 'Always bridge differences',
   },
   {
     key: 'consideration',
     label: 'Consideration',
-    icon: '💛',
     scenario: 'I pay careful attention to the personal needs, feelings, and well-being of each individual team member.',
     low: 'Focus on tasks over people',
     high: 'People-first approach',
@@ -55,6 +84,12 @@ const QUESTIONS = [
 ]
 
 const SCALE_LABELS = ['Strongly\nDisagree', 'Disagree', 'Neutral', 'Agree', 'Strongly\nAgree']
+
+const CheckIcon = () => (
+  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+  </svg>
+)
 
 export default function Assessment() {
   const { user } = useAuth()
@@ -74,19 +109,9 @@ export default function Assessment() {
   const isLast = step === total - 1
   const progress = (Object.values(scores).filter((v) => v > 0).length / total) * 100
 
-  const handleSelect = (val) => {
-    setScores({ ...scores, [q.key]: val })
-  }
-
-  const handleNext = () => {
-    if (!answered) return
-    if (isLast) return
-    setStep(step + 1)
-  }
-
-  const handleBack = () => {
-    if (step > 0) setStep(step - 1)
-  }
+  const handleSelect = (val) => setScores({ ...scores, [q.key]: val })
+  const handleNext   = () => { if (answered && !isLast) setStep(step + 1) }
+  const handleBack   = () => { if (step > 0) setStep(step - 1) }
 
   const handleSubmit = async () => {
     if (!allAnswered) { setError('Please answer all questions before submitting.'); return }
@@ -120,9 +145,7 @@ export default function Assessment() {
           <div className="flex items-center justify-between mb-3">
             <div>
               <p className="text-xs text-gray-400 font-medium">Leadership Assessment</p>
-              <p className="text-sm font-semibold text-gray-700">
-                Question {step + 1} of {total}
-              </p>
+              <p className="text-sm font-semibold text-gray-700">Question {step + 1} of {total}</p>
             </div>
             <div className="text-right">
               <p className="text-xs text-gray-400 mb-1">{Math.round(progress)}% complete</p>
@@ -153,7 +176,9 @@ export default function Assessment() {
       <div className="max-w-2xl mx-auto px-6 py-10">
         {error && (
           <div className="mb-6 flex gap-2.5 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">
-            <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
             {error}
           </div>
         )}
@@ -161,8 +186,8 @@ export default function Assessment() {
         <div className="bg-white rounded-2xl border border-gray-200 shadow-card p-8">
           {/* Icon + label */}
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-11 h-11 gradient-brand rounded-xl flex items-center justify-center text-xl shadow-sm">
-              {q.icon}
+            <div className="w-11 h-11 gradient-brand rounded-xl flex items-center justify-center text-white shadow-sm">
+              {DIM_ICONS[q.key]}
             </div>
             <div>
               <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Dimension {step + 1}</p>
@@ -172,9 +197,7 @@ export default function Assessment() {
 
           {/* Scenario */}
           <div className="bg-slate-50 rounded-xl p-5 mb-8 border border-slate-100">
-            <p className="text-gray-600 text-sm leading-relaxed">
-              &ldquo;{q.scenario}&rdquo;
-            </p>
+            <p className="text-gray-600 text-sm leading-relaxed">&ldquo;{q.scenario}&rdquo;</p>
           </div>
 
           {/* Scale */}
@@ -209,14 +232,17 @@ export default function Assessment() {
           </div>
 
           {/* Navigation */}
-          <div className="flex gap-3">
+          <div className="flex gap-3 items-center">
             {step > 0 && (
               <button
                 type="button"
                 onClick={handleBack}
-                className="px-5 py-2.5 rounded-xl text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
+                className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
               >
-                ← Back
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+                Back
               </button>
             )}
             <div className="flex-1" />
@@ -225,45 +251,71 @@ export default function Assessment() {
                 type="button"
                 onClick={handleSubmit}
                 disabled={loading || !allAnswered}
-                className="px-8 py-2.5 gradient-brand text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 shadow-sm"
+                className="flex items-center gap-2 px-8 py-2.5 gradient-brand text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 shadow-sm"
               >
-                {loading ? 'Analysing your style…' : 'Submit & Get Results →'}
+                {loading ? (
+                  <>
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={3} />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                    </svg>
+                    Analysing…
+                  </>
+                ) : (
+                  <>
+                    Submit & Get Results
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </>
+                )}
               </button>
             ) : (
               <button
                 type="button"
                 onClick={handleNext}
                 disabled={!answered}
-                className="px-8 py-2.5 gradient-brand text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-40 shadow-sm"
+                className="flex items-center gap-2 px-8 py-2.5 gradient-brand text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-40 shadow-sm"
               >
-                Next →
+                Next
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
               </button>
             )}
           </div>
         </div>
 
-        {/* Mini overview */}
+        {/* Mini dimension overview */}
         <div className="mt-6 grid grid-cols-6 gap-2">
-          {QUESTIONS.map((qItem, i) => (
-            <button
-              key={i}
-              onClick={() => setStep(i)}
-              className={`rounded-xl p-2.5 flex flex-col items-center gap-1 border transition-all ${
-                i === step
-                  ? 'border-brand bg-brand-light shadow-sm'
-                  : scores[qItem.key] > 0
-                    ? 'border-green-200 bg-green-50'
-                    : 'border-gray-200 bg-white hover:border-gray-300'
-              }`}
-            >
-              <span className="text-base">{qItem.icon}</span>
-              {scores[qItem.key] > 0 && (
-                <span className={`text-xs font-bold ${i === step ? 'text-brand' : 'text-green-600'}`}>
-                  {scores[qItem.key]}
+          {QUESTIONS.map((qItem, i) => {
+            const done = scores[qItem.key] > 0
+            const active = i === step
+            return (
+              <button
+                key={i}
+                onClick={() => setStep(i)}
+                title={qItem.label}
+                className={`rounded-xl p-2.5 flex flex-col items-center gap-1.5 border transition-all ${
+                  active ? 'border-brand bg-brand-light shadow-sm'
+                  : done  ? 'border-green-200 bg-green-50'
+                          : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}
+              >
+                <span className={active ? 'text-brand' : done ? 'text-green-600' : 'text-gray-400'}>
+                  {done && !active
+                    ? <CheckIcon />
+                    : <span className={`w-4 h-4 block ${active ? 'text-brand' : 'text-gray-400'}`}>{DIM_ICONS[qItem.key]}</span>
+                  }
                 </span>
-              )}
-            </button>
-          ))}
+                {done && (
+                  <span className={`text-xs font-bold ${active ? 'text-brand' : 'text-green-600'}`}>
+                    {scores[qItem.key]}
+                  </span>
+                )}
+              </button>
+            )
+          })}
         </div>
         <p className="text-center text-xs text-gray-400 mt-3">
           Click any dimension above to jump to that question
