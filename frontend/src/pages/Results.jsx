@@ -11,7 +11,6 @@ const STYLES = {
     gradient: 'from-indigo-600 to-violet-600',
     color:    '#4F46E5',
     light:    '#EEF2FF',
-    icon:     '🚀',
     tagline:  'Vision · Inspiration · Innovation',
     description: 'You inspire others through a compelling vision, intellectual challenge, and personalised support. You are a catalyst for change and growth.',
   },
@@ -19,7 +18,6 @@ const STYLES = {
     gradient: 'from-sky-500 to-blue-600',
     color:    '#0EA5E9',
     light:    '#F0F9FF',
-    icon:     '⚙️',
     tagline:  'Structure · Accountability · Results',
     description: 'You lead through clear expectations, defined roles, and performance-based recognition. You deliver consistent, measurable outcomes.',
   },
@@ -27,7 +25,6 @@ const STYLES = {
     gradient: 'from-emerald-500 to-teal-600',
     color:    '#10B981',
     light:    '#ECFDF5',
-    icon:     '💚',
     tagline:  'Empathy · Trust · Well-being',
     description: 'You prioritise the well-being and development of your team members. You build psychological safety and lead with genuine care.',
   },
@@ -35,13 +32,20 @@ const STYLES = {
     gradient: 'from-amber-500 to-orange-500',
     color:    '#F59E0B',
     light:    '#FFFBEB',
-    icon:     '🕊️',
     tagline:  'Autonomy · Freedom · Trust',
     description: 'You grant high autonomy and minimal interference. This works best with self-driven experts — though more active engagement may be needed.',
   },
 }
 
-const FEATURE_LABELS = {
+// Backend returns feature names in Title_Case — map to readable labels
+const FEATURE_LABEL_MAP = {
+  Role_Assumption:          'Role Assumption',
+  Production_Emphasis:      'Production Emphasis',
+  Initiation_of_Structure:  'Initiation of Structure',
+  Tolerance_of_Uncertainty: 'Tolerance of Uncertainty',
+  Integration:              'Integration',
+  Consideration:            'Consideration',
+  // lowercase fallback (radar chart keys)
   role_assumption:          'Role Assumption',
   production_emphasis:      'Production Emphasis',
   initiation_of_structure:  'Initiation of Structure',
@@ -49,6 +53,14 @@ const FEATURE_LABELS = {
   integration:              'Integration',
   consideration:            'Consideration',
 }
+
+const featureLabel = (key) => FEATURE_LABEL_MAP[key] ?? key.replace(/_/g, ' ')
+
+// Lowercase keys used for radar chart (stored on the result object)
+const RADAR_KEYS = [
+  'role_assumption', 'production_emphasis', 'initiation_of_structure',
+  'tolerance_of_uncertainty', 'integration', 'consideration',
+]
 
 function SectionTitle({ children, subtitle }) {
   return (
@@ -91,8 +103,8 @@ export default function Results() {
   const { predicted_class_name, probabilities, top3_shap_features, counterfactual, recommendations } = result
   const style = STYLES[predicted_class_name] ?? STYLES.Transformational
 
-  const radarData = Object.entries(FEATURE_LABELS).map(([key, label]) => ({
-    subject: label.replace(' ', '\n'),
+  const radarData = RADAR_KEYS.map((key) => ({
+    subject: featureLabel(key),
     score: result[key] ?? 0,
     fullMark: 5,
   }))
@@ -102,10 +114,14 @@ export default function Results() {
     .sort((a, b) => b.pct - a.pct)
 
   const shapData = (top3_shap_features ?? []).map((f) => ({
-    name: FEATURE_LABELS[f.feature] ?? f.feature,
+    name: featureLabel(f.feature),
     impact: parseFloat((f.shap_value ?? 0).toFixed(3)),
     positive: (f.shap_value ?? 0) >= 0,
   }))
+
+  // counterfactual.changes is an array of {feature, direction, ...}
+  const cfChanges = Array.isArray(counterfactual?.changes) ? counterfactual.changes : []
+  const cfNewClass = counterfactual?.counterfactual_class_name ?? counterfactual?.new_class
 
   const topProb = probData[0]?.pct ?? 0
 
@@ -232,26 +248,30 @@ export default function Results() {
         </div>
 
         {/* Counterfactual */}
-        {counterfactual && counterfactual.changes && Object.keys(counterfactual.changes).length > 0 && (
+        {cfChanges.length > 0 && (
           <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6">
             <div className="flex items-start gap-3">
-              <span className="text-2xl">🔄</span>
+              <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-amber-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+              </div>
               <div className="flex-1">
                 <h2 className="text-sm font-bold text-amber-900 mb-1">What Would Shift Your Style?</h2>
                 <p className="text-xs text-amber-700 mb-4">
                   The minimum behavioural change that would reclassify you as{' '}
-                  <span className="font-bold">{counterfactual.new_class}</span>:
+                  <span className="font-bold">{cfNewClass}</span>:
                 </p>
                 <div className="space-y-2">
-                  {Object.entries(counterfactual.changes).map(([feat, delta]) => (
-                    <div key={feat} className="flex items-center justify-between bg-white/60 rounded-xl px-4 py-2.5 border border-amber-100">
+                  {cfChanges.map((change, i) => (
+                    <div key={i} className="flex items-center justify-between bg-white/60 rounded-xl px-4 py-2.5 border border-amber-100">
                       <span className="text-sm text-amber-900 font-medium">
-                        {FEATURE_LABELS[feat] ?? feat}
+                        {featureLabel(change.feature)}
                       </span>
                       <span className={`text-sm font-bold px-2 py-0.5 rounded-lg ${
-                        delta > 0 ? 'text-emerald-700 bg-emerald-50' : 'text-red-600 bg-red-50'
+                        change.direction === 'increase' ? 'text-emerald-700 bg-emerald-50' : 'text-red-600 bg-red-50'
                       }`}>
-                        {delta > 0 ? `+${delta}` : delta} step{Math.abs(delta) !== 1 ? 's' : ''}
+                        {change.direction === 'increase' ? '+ increase' : '− decrease'} by 1 step
                       </span>
                     </div>
                   ))}
