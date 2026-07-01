@@ -6,6 +6,7 @@ import Register from './pages/Register'
 import Assessment from './pages/Assessment'
 import Results from './pages/Results'
 import History from './pages/History'
+import Dashboard from './pages/Dashboard'
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
@@ -23,7 +24,8 @@ export default function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/assessment" element={<PrivateRoute><Assessment /></PrivateRoute>} />
         <Route path="/results/:id" element={<PrivateRoute><Results /></PrivateRoute>} />
-        <Route path="/history" element={<PrivateRoute><History /></PrivateRoute>} />
+        <Route path="/history"    element={<PrivateRoute><History /></PrivateRoute>} />
+        <Route path="/dashboard"  element={<PrivateRoute><Dashboard /></PrivateRoute>} />
       </Routes>
     </>
   )
