@@ -145,6 +145,26 @@ export default function Dashboard() {
   const [data, setData] = useState(null)
   const [modelComp, setModelComp] = useState(null)
   const [error, setError] = useState('')
+  const [csvExporting, setCsvExporting] = useState(false)
+
+  const downloadCSV = async () => {
+    setCsvExporting(true)
+    try {
+      const token = localStorage.getItem('access')
+      const res = await fetch('/api/assessment/export-csv/', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'lau_assessment_export.csv'
+      a.click()
+      URL.revokeObjectURL(url)
+    } finally {
+      setCsvExporting(false)
+    }
+  }
 
   useEffect(() => {
     api.get('/assessment/analytics/')
@@ -266,6 +286,72 @@ export default function Dashboard() {
               color="#F59E0B" light="#FFFBEB"
             />
           </div>
+
+          {/* Goal Progress */}
+          {user?.target_leadership_style && (
+            <div className={`rounded-2xl p-5 mb-6 border ${
+              user.target_leadership_style === personal.dominant_style
+                ? 'bg-emerald-50 border-emerald-200'
+                : 'bg-white border-gray-200 shadow-card'
+            }`}>
+              <div className="flex items-start gap-3">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                  user.target_leadership_style === personal.dominant_style
+                    ? 'bg-emerald-100 text-emerald-700'
+                    : 'gradient-brand text-white'
+                }`}>
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                    <circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <h3 className="text-sm font-bold text-gray-900">Your Development Goal</h3>
+                    {user.target_leadership_style === personal.dominant_style && (
+                      <span className="text-xs bg-emerald-100 text-emerald-700 font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Goal Achieved!
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3 mt-2 flex-wrap">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-gray-500">Current:</span>
+                      <span
+                        className="text-xs font-bold px-2.5 py-1 rounded-full text-white"
+                        style={{ backgroundColor: STYLE_CFG[personal.dominant_style]?.color ?? '#94A3B8' }}
+                      >
+                        {personal.dominant_style ?? 'None yet'}
+                      </span>
+                    </div>
+                    <svg className="w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-gray-500">Goal:</span>
+                      <span
+                        className="text-xs font-bold px-2.5 py-1 rounded-full text-white"
+                        style={{ backgroundColor: STYLE_CFG[user.target_leadership_style]?.color ?? '#94A3B8' }}
+                      >
+                        {user.target_leadership_style}
+                      </span>
+                    </div>
+                  </div>
+                  {user.target_leadership_style !== personal.dominant_style && hasPersonal && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      You've achieved your goal style in{' '}
+                      <strong>
+                        {personal.style_distribution.find(s => s.style === user.target_leadership_style)?.count ?? 0}
+                      </strong> of <strong>{personal.total_assessments}</strong> assessments.
+                      Keep retaking to track your progress.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Survey stats */}
           {personal.survey && (
@@ -660,6 +746,47 @@ export default function Dashboard() {
                 </ResponsiveContainer>
               </div>
             </Card>
+          </div>
+        )}
+
+        {/* ── ADMIN: RESEARCH EXPORT ─────────────────────────── */}
+        {user?.is_staff && (
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-1 h-5 bg-gradient-to-b from-rose-500 to-pink-600 rounded-full" />
+              <h2 className="text-sm font-bold text-gray-700 uppercase tracking-widest">Research Export</h2>
+              <span className="text-xs text-gray-400 ml-1">— Admin only</span>
+            </div>
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-card p-6 flex items-center justify-between gap-4">
+              <div>
+                <h3 className="text-sm font-bold text-gray-900">Download Assessment Data</h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Full CSV export of all assessment results, demographics, behavioural scores, and H3 survey responses.
+                </p>
+              </div>
+              <button
+                onClick={downloadCSV}
+                disabled={csvExporting}
+                className="flex items-center gap-2 px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-60 flex-shrink-0"
+              >
+                {csvExporting ? (
+                  <>
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={3} />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                    </svg>
+                    Exporting…
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Export CSV
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         )}
 

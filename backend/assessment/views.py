@@ -1,3 +1,5 @@
+import csv
+import io
 import json
 from collections import Counter, defaultdict
 from itertools import combinations
@@ -5,9 +7,10 @@ from itertools import combinations
 import numpy as np
 from django.contrib.auth import get_user_model
 from django.db.models import Avg
+from django.http import HttpResponse
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 
 from .models import AssessmentResult, SurveyResponse
@@ -324,6 +327,53 @@ def submit_survey(request, pk):
 
     serializer.save(assessment=assessment)
     return Response({'detail': 'Survey saved. Thank you!'}, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def export_csv(request):
+    """
+    GET /api/assessment/export-csv/
+    Admin-only. Streams all AssessmentResult rows + survey data as a CSV file.
+    """
+    rows = (
+        AssessmentResult.objects
+        .select_related('user', 'survey')
+        .order_by('created_at')
+    )
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    writer.writerow([
+        'id', 'created_at', 'user_email',
+        'country', 'age', 'gender', 'education_level',
+        'work_experience_years', 'position_level',
+        'role_assumption', 'production_emphasis', 'initiation_of_structure',
+        'tolerance_of_uncertainty', 'integration', 'consideration',
+        'predicted_class', 'predicted_class_name',
+        'survey_relevance', 'survey_personalisation', 'survey_usefulness',
+    ])
+
+    for r in rows:
+        survey = getattr(r, 'survey', None)
+        writer.writerow([
+            r.id,
+            r.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            r.user.email,
+            r.country, r.age, r.gender, r.education_level,
+            r.work_experience_years, r.position_level,
+            r.role_assumption, r.production_emphasis, r.initiation_of_structure,
+            r.tolerance_of_uncertainty, r.integration, r.consideration,
+            r.predicted_class, r.predicted_class_name,
+            survey.relevance       if survey else '',
+            survey.personalisation if survey else '',
+            survey.usefulness      if survey else '',
+        ])
+
+    response = HttpResponse(output.getvalue(), content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="lau_assessment_export.csv"'
+    return response
 
 
 @api_view(['GET'])

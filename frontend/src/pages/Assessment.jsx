@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts'
 import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
+import OnboardingModal from '../components/OnboardingModal'
 
 // SVG icons — one per behavioural dimension
 const DIM_ICONS = {
@@ -43,6 +44,7 @@ const QUESTIONS = [
   {
     key: 'role_assumption',
     label: 'Role Assumption',
+    description: 'How readily you take charge and accept responsibility for leading others.',
     scenario: 'When joining a new team or project, I naturally step up, define responsibilities, and take ownership of the leadership role.',
     low: 'Prefer others to lead',
     high: 'Always take the lead',
@@ -50,6 +52,7 @@ const QUESTIONS = [
   {
     key: 'production_emphasis',
     label: 'Production Emphasis',
+    description: 'How much you prioritise task completion, output quality, and hitting targets.',
     scenario: 'I consistently push myself and others to meet performance targets, prioritising output quality and productivity above other considerations.',
     low: 'Results are secondary',
     high: 'Results-driven at all times',
@@ -57,6 +60,7 @@ const QUESTIONS = [
   {
     key: 'initiation_of_structure',
     label: 'Initiation of Structure',
+    description: 'How clearly you define goals, roles, and workflows for your team.',
     scenario: 'I establish clear tasks, timelines, and operating procedures so that team members always know exactly what is expected of them.',
     low: 'Flexible, unstructured',
     high: 'Highly structured & planned',
@@ -64,6 +68,7 @@ const QUESTIONS = [
   {
     key: 'tolerance_of_uncertainty',
     label: 'Tolerance of Uncertainty',
+    description: 'How comfortable you are making decisions with incomplete information.',
     scenario: 'I remain calm, decisive, and effective even when facing ambiguous situations or unexpected changes to plans.',
     low: 'Prefer certainty & stability',
     high: 'Thrive in ambiguity',
@@ -71,6 +76,7 @@ const QUESTIONS = [
   {
     key: 'integration',
     label: 'Integration',
+    description: 'How actively you build cohesion, resolve conflict, and align your team.',
     scenario: 'I actively work to mediate conflicts, build consensus, and bring diverse team members together toward a shared goal.',
     low: 'Let the team resolve it',
     high: 'Always bridge differences',
@@ -78,6 +84,7 @@ const QUESTIONS = [
   {
     key: 'consideration',
     label: 'Consideration',
+    description: "How much you focus on team members' wellbeing, needs, and development.",
     scenario: 'I pay careful attention to the personal needs, feelings, and well-being of each individual team member.',
     low: 'Focus on tasks over people',
     high: 'People-first approach',
@@ -249,6 +256,7 @@ export default function Assessment() {
   })
   const [error, setError]     = useState('')
   const [loading, setLoading] = useState(false)
+  const [showOnboarding, setShowOnboarding] = useState(false)
 
   // On mount: check assessment history
   useEffect(() => {
@@ -263,6 +271,10 @@ export default function Assessment() {
           })
         } else {
           setPhase('questions')
+          // Show onboarding modal for first-time users
+          if (!localStorage.getItem('lau_onboarded')) {
+            setShowOnboarding(true)
+          }
         }
       })
       .catch(() => setPhase('questions')) // On error, just go straight to questions
@@ -327,6 +339,12 @@ export default function Assessment() {
   // ── Questions ─────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-slate-50">
+      {showOnboarding && (
+        <OnboardingModal onClose={() => {
+          localStorage.setItem('lau_onboarded', '1')
+          setShowOnboarding(false)
+        }} />
+      )}
       {/* Progress header */}
       <div className="bg-white border-b border-gray-100">
         <div className="max-w-2xl mx-auto px-6 py-4">
@@ -382,6 +400,7 @@ export default function Assessment() {
             <div>
               <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Dimension {step + 1}</p>
               <h2 className="text-lg font-bold text-gray-900">{q.label}</h2>
+              <p className="text-xs text-gray-500 mt-0.5">{q.description}</p>
             </div>
             {/* Show previous score badge for returning users */}
             {lastResult && lastResult[q.key] && (

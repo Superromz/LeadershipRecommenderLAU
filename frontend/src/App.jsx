@@ -9,6 +9,7 @@ import Results from './pages/Results'
 import History from './pages/History'
 import Dashboard from './pages/Dashboard'
 import Profile from './pages/Profile'
+import Compare from './pages/Compare'
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
@@ -43,6 +44,7 @@ export default function App() {
         <Route path="/history"    element={<PrivateRoute><History /></PrivateRoute>} />
         <Route path="/dashboard"  element={<PrivateRoute><Dashboard /></PrivateRoute>} />
         <Route path="/profile"    element={<PrivateRoute><Profile /></PrivateRoute>} />
+        <Route path="/compare"    element={<PrivateRoute><Compare /></PrivateRoute>} />
         <Route path="*"           element={<Navigate to="/assessment" replace />} />
       </Routes>
     </>

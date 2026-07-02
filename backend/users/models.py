@@ -39,6 +39,16 @@ class User(AbstractUser):
     work_experience_years = models.FloatField(default=0.0)
     position_level = models.CharField(max_length=10, choices=POSITION_CHOICES, default='Junior')
 
+    STYLE_CHOICES = [
+        ('Transformational', 'Transformational'),
+        ('Transactional',    'Transactional'),
+        ('Supportive',       'Supportive'),
+        ('Laissez-Faire',    'Laissez-Faire'),
+    ]
+    target_leadership_style = models.CharField(
+        max_length=20, choices=STYLE_CHOICES, null=True, blank=True
+    )
+
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
 

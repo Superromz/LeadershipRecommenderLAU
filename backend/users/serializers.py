@@ -29,8 +29,9 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'id', 'email', 'username',
             'country', 'age', 'gender',
             'education_level', 'work_experience_years', 'position_level',
+            'target_leadership_style', 'is_staff',
         ]
-        read_only_fields = ['id', 'email']
+        read_only_fields = ['id', 'email', 'is_staff']
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):

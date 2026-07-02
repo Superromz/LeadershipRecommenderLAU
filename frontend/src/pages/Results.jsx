@@ -1,10 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Tooltip,
   BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell,
 } from 'recharts'
+import jsPDF from 'jspdf'
+import html2canvas from 'html2canvas'
 import api from '../api/client'
+import { useAuth } from '../context/AuthContext'
 
 const STYLES = {
   Transformational: {
@@ -160,8 +163,26 @@ function SurveyPanel({ assessmentId, styleColor, alreadySubmitted }) {
 
 export default function Results() {
   const { id } = useParams()
+  const { user } = useAuth()
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
+  const [exporting, setExporting] = useState(false)
+  const reportRef = useRef(null)
+
+  const exportPDF = async () => {
+    if (!reportRef.current) return
+    setExporting(true)
+    try {
+      const canvas = await html2canvas(reportRef.current, { scale: 2, useCORS: true, logging: false })
+      const imgW = canvas.width / 2
+      const imgH = canvas.height / 2
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: [imgW, imgH] })
+      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, imgW, imgH)
+      pdf.save(`leadership-report-${id}.pdf`)
+    } finally {
+      setExporting(false)
+    }
+  }
 
   useEffect(() => {
     api.get(`/assessment/${id}/`)
@@ -212,12 +233,24 @@ export default function Results() {
 
   const topProb = probData[0]?.pct ?? 0
 
+  const goalAchieved = user?.target_leadership_style === predicted_class_name
+
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50" ref={reportRef}>
       {/* Hero banner */}
       <div className={`bg-gradient-to-br ${style.gradient} text-white`}>
         <div className="max-w-3xl mx-auto px-6 py-12">
-          <p className="text-white/60 text-xs font-semibold uppercase tracking-widest mb-3">Your Leadership Style</p>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-white/60 text-xs font-semibold uppercase tracking-widest">Your Leadership Style</p>
+            {goalAchieved && (
+              <span className="flex items-center gap-1.5 bg-white/20 text-white text-xs font-bold px-3 py-1.5 rounded-full border border-white/30">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                Goal Achieved!
+              </span>
+            )}
+          </div>
           <div className="flex items-start gap-5">
             <div className="flex-1">
               <h1 className="text-4xl font-extrabold tracking-tight mb-1">{predicted_class_name}</h1>
@@ -227,6 +260,28 @@ export default function Results() {
             <div className="text-right flex-shrink-0">
               <div className="text-4xl font-extrabold">{topProb}%</div>
               <div className="text-white/60 text-xs mt-0.5">Confidence</div>
+              <button
+                onClick={exportPDF}
+                disabled={exporting}
+                className="mt-3 flex items-center gap-1.5 bg-white/20 hover:bg-white/30 border border-white/30 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60"
+              >
+                {exporting ? (
+                  <>
+                    <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={3} />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                    </svg>
+                    Exporting…
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Export PDF
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>
@@ -398,6 +453,26 @@ export default function Results() {
                     <span className="text-xs font-semibold text-gray-500">{rec.domain}</span>
                   </div>
                   <p className="text-sm text-gray-700 leading-relaxed">{rec.advice}</p>
+                  {rec.resources && rec.resources.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-gray-200/60">
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Further Reading</p>
+                      <div className="flex flex-wrap gap-2">
+                        {rec.resources.map((r) => (
+                          <a
+                            key={r.url}
+                            href={r.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={r.description}
+                            className="text-xs font-medium underline underline-offset-2 hover:opacity-70 transition-opacity"
+                            style={{ color: style.color }}
+                          >
+                            {r.title} ↗
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

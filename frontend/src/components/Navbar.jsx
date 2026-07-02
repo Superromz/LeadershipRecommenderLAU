@@ -47,6 +47,14 @@ export default function Navbar() {
           >
             History
           </Link>
+          <Link
+            to="/compare"
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              isActive('/compare') ? 'bg-brand-light text-brand' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+            }`}
+          >
+            Compare
+          </Link>
           <div className="ml-3 pl-3 border-l border-gray-200 flex items-center gap-2">
             <Link to="/profile">
               <div className="w-7 h-7 rounded-full gradient-brand flex items-center justify-center text-white text-xs font-bold hover:opacity-80 transition-opacity">

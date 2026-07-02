@@ -206,6 +206,79 @@ ADVICE_BANK = {
 }
 
 
+# ── Curated Resources per Leadership Style ───────────────────────────────────
+RESOURCES_BY_STYLE = {
+    'Transformational': [
+        {
+            'title': 'What Makes a Leader? — Daniel Goleman (HBR)',
+            'url': 'https://hbr.org/2004/01/what-makes-a-leader',
+            'description': 'Emotional intelligence competencies that define transformational leaders.',
+        },
+        {
+            'title': 'Decoding Leadership: What Really Matters — McKinsey',
+            'url': 'https://www.mckinsey.com/capabilities/people-and-organizational-performance/our-insights/decoding-leadership-what-really-matters',
+            'description': 'Evidence-based behaviours of highly effective leaders.',
+        },
+        {
+            'title': 'How to Be Inspiring — HBR',
+            'url': 'https://hbr.org/2018/11/how-to-be-inspiring',
+            'description': 'Practical techniques for motivating and inspiring your team.',
+        },
+    ],
+    'Transactional': [
+        {
+            'title': 'Management Time: Who\'s Got the Monkey? — HBR',
+            'url': 'https://hbr.org/1999/11/management-time-whos-got-the-monkey',
+            'description': 'Classic piece on task delegation and accountability management.',
+        },
+        {
+            'title': 'The Focused Leader — Daniel Goleman (HBR)',
+            'url': 'https://hbr.org/2013/12/the-focused-leader',
+            'description': 'How goal-focused leaders direct attention to drive results.',
+        },
+        {
+            'title': 'Making Goal Setting Work — HBR',
+            'url': 'https://hbr.org/2019/01/making-goal-setting-actually-work',
+            'description': 'Research-backed framework for effective goal setting.',
+        },
+    ],
+    'Supportive': [
+        {
+            'title': 'The Manager as Coach — HBR',
+            'url': 'https://hbr.org/2019/11/the-leader-as-coach',
+            'description': 'How to shift from managing tasks to coaching your people.',
+        },
+        {
+            'title': 'What Great Listeners Actually Do — HBR',
+            'url': 'https://hbr.org/2016/07/what-great-listeners-actually-do',
+            'description': 'Evidence-based research on active listening in leadership.',
+        },
+        {
+            'title': 'Creating Psychological Safety — Amy Edmondson (HBR)',
+            'url': 'https://hbr.org/2023/02/what-is-psychological-safety',
+            'description': 'Build the team environment where supportive leadership thrives.',
+        },
+    ],
+    'Laissez-Faire': [
+        {
+            'title': 'Leadership That Gets Results — Daniel Goleman (HBR)',
+            'url': 'https://hbr.org/2000/03/leadership-that-gets-results',
+            'description': 'Six leadership styles and when each is most — and least — effective.',
+        },
+        {
+            'title': 'When to Give Your Team More Autonomy — HBR',
+            'url': 'https://hbr.org/2019/03/when-empowering-employees-works-and-when-it-doesnt',
+            'description': 'Research on when delegation and autonomy produce the best outcomes.',
+        },
+        {
+            'title': 'The Dangers of Letting People Set Their Own Goals — HBR',
+            'url': 'https://hbr.org/2022/01/dont-let-metrics-undermine-your-business',
+            'description': 'How to stay engaged without micromanaging — finding the balance.',
+        },
+    ],
+}
+
+
 def _score_tier(std_score: float) -> str:
     if std_score < -0.5:
         return 'low'
@@ -246,6 +319,7 @@ def generate_recommendations(top3_shap: list, predicted_class_name: str) -> list
             'score_tier':      tier,
             'shap_direction':  item['direction'],
             'advice':          advice,
+            'resources':       RESOURCES_BY_STYLE.get(predicted_class_name, []),
         })
 
     return recommendations

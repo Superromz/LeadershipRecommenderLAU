@@ -25,12 +25,13 @@ function Field({ label, children }) {
 export default function Profile() {
   const { user, logout } = useAuth()
   const [form, setForm] = useState({
-    country:              user?.country ?? '',
-    age:                  user?.age ?? '',
-    gender:               user?.gender ?? '',
-    education_level:      user?.education_level ?? '',
-    work_experience_years: user?.work_experience_years ?? '',
-    position_level:       user?.position_level ?? '',
+    country:                  user?.country ?? '',
+    age:                      user?.age ?? '',
+    gender:                   user?.gender ?? '',
+    education_level:          user?.education_level ?? '',
+    work_experience_years:    user?.work_experience_years ?? '',
+    position_level:           user?.position_level ?? '',
+    target_leadership_style:  user?.target_leadership_style ?? '',
   })
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
@@ -111,6 +112,29 @@ export default function Profile() {
                   disabled
                   className={`${inputCls} opacity-60 cursor-not-allowed bg-gray-50`}
                 />
+              </Field>
+            </div>
+
+            <div className="border-t border-gray-100" />
+
+            {/* Development Goal */}
+            <div className="space-y-4">
+              <p className="text-xs font-bold text-gray-300 uppercase tracking-widest">Development Goal</p>
+              <Field label="Target Leadership Style">
+                <select
+                  name="target_leadership_style"
+                  value={form.target_leadership_style}
+                  onChange={handleChange}
+                  className={inputCls}
+                >
+                  <option value="">No goal set</option>
+                  {['Transformational', 'Transactional', 'Supportive', 'Laissez-Faire'].map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-400 mt-1.5">
+                  Track your progress toward becoming this type of leader across assessments.
+                </p>
               </Field>
             </div>
 
