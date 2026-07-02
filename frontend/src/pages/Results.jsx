@@ -71,6 +71,93 @@ function SectionTitle({ children, subtitle }) {
   )
 }
 
+const SURVEY_QUESTIONS = [
+  { key: 'relevance',       label: 'The style description felt relevant to me' },
+  { key: 'personalisation', label: 'The feedback felt personalised to my profile' },
+  { key: 'usefulness',      label: 'I found the recommendations useful' },
+]
+
+function SurveyPanel({ assessmentId, styleColor, alreadySubmitted }) {
+  const [ratings, setRatings] = useState({ relevance: 0, personalisation: 0, usefulness: 0 })
+  const [submitted, setSubmitted] = useState(alreadySubmitted ?? false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleSubmit = async () => {
+    if (Object.values(ratings).some((v) => v === 0)) {
+      setError('Please rate all three questions before submitting.')
+      return
+    }
+    setLoading(true)
+    setError('')
+    try {
+      await api.post(`/assessment/${assessmentId}/survey/`, ratings)
+      setSubmitted(true)
+    } catch {
+      setError('Could not save your feedback. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (submitted) {
+    return (
+      <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 flex items-center gap-3">
+        <svg className="w-5 h-5 text-emerald-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+        <div>
+          <p className="text-sm font-bold text-emerald-800">Thank you for your feedback!</p>
+          <p className="text-xs text-emerald-600 mt-0.5">Your response helps validate the system's usefulness (H3).</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-card p-6">
+      <SectionTitle subtitle="Quick 3-question survey — helps us validate the system">
+        How was your experience?
+      </SectionTitle>
+      <div className="space-y-5">
+        {SURVEY_QUESTIONS.map((q) => (
+          <div key={q.key}>
+            <p className="text-sm text-gray-700 mb-2">{q.label}</p>
+            <div className="flex gap-2">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button
+                  key={n}
+                  onClick={() => setRatings((prev) => ({ ...prev, [q.key]: n }))}
+                  className={`w-9 h-9 rounded-xl text-sm font-bold border-2 transition-all ${
+                    ratings[q.key] === n
+                      ? 'text-white border-transparent'
+                      : 'text-gray-400 border-gray-200 hover:border-gray-300'
+                  }`}
+                  style={ratings[q.key] === n ? { backgroundColor: styleColor, borderColor: styleColor } : {}}
+                >
+                  {n}
+                </button>
+              ))}
+              <span className="ml-1 self-center text-xs text-gray-400">
+                {ratings[q.key] === 0 ? 'Not rated' : ratings[q.key] <= 2 ? 'Disagree' : ratings[q.key] <= 3 ? 'Neutral' : 'Agree'}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+      {error && <p className="mt-3 text-xs text-red-600">{error}</p>}
+      <button
+        onClick={handleSubmit} disabled={loading}
+        className="mt-5 w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+        style={{ backgroundColor: styleColor }}
+      >
+        {loading ? 'Submitting…' : 'Submit feedback'}
+      </button>
+      <p className="text-xs text-gray-400 text-center mt-2">1 = Strongly disagree · 5 = Strongly agree</p>
+    </div>
+  )
+}
+
 export default function Results() {
   const { id } = useParams()
   const [result, setResult] = useState(null)
@@ -100,7 +187,7 @@ export default function Results() {
     )
   }
 
-  const { predicted_class_name, probabilities, top3_shap_features, counterfactual, recommendations } = result
+  const { predicted_class_name, probabilities, top3_shap_features, counterfactual, recommendations, has_survey } = result
   const style = STYLES[predicted_class_name] ?? STYLES.Transformational
 
   const radarData = RADAR_KEYS.map((key) => ({
@@ -132,7 +219,6 @@ export default function Results() {
         <div className="max-w-3xl mx-auto px-6 py-12">
           <p className="text-white/60 text-xs font-semibold uppercase tracking-widest mb-3">Your Leadership Style</p>
           <div className="flex items-start gap-5">
-            <div className="text-5xl">{style.icon}</div>
             <div className="flex-1">
               <h1 className="text-4xl font-extrabold tracking-tight mb-1">{predicted_class_name}</h1>
               <p className="text-white/70 text-sm font-medium mb-3">{style.tagline}</p>
@@ -257,7 +343,19 @@ export default function Results() {
                 </svg>
               </div>
               <div className="flex-1">
-                <h2 className="text-sm font-bold text-amber-900 mb-1">What Would Shift Your Style?</h2>
+                <div className="flex items-center justify-between mb-1">
+                  <h2 className="text-sm font-bold text-amber-900">What Would Shift Your Style?</h2>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
+                      {cfChanges.length} step{cfChanges.length !== 1 ? 's' : ''} away
+                    </span>
+                    {counterfactual?.proximity_distance != null && (
+                      <span className="text-xs font-semibold bg-white border border-amber-200 text-amber-700 px-2 py-0.5 rounded-full">
+                        d = {counterfactual.proximity_distance}
+                      </span>
+                    )}
+                  </div>
+                </div>
                 <p className="text-xs text-amber-700 mb-4">
                   The minimum behavioural change that would reclassify you as{' '}
                   <span className="font-bold">{cfNewClass}</span>:
@@ -305,6 +403,9 @@ export default function Results() {
             </div>
           </div>
         )}
+
+        {/* H3 Survey */}
+        <SurveyPanel assessmentId={id} styleColor={style.color} alreadySubmitted={has_survey} />
 
         {/* Actions */}
         <div className="flex gap-3 pb-4">

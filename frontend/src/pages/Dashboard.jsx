@@ -34,6 +34,11 @@ const FEATURE_LABELS = {
 }
 const featureLabel = (key) => FEATURE_LABELS[key] ?? key.replace(/_/g, ' ')
 
+const RADAR_KEYS = [
+  'role_assumption', 'production_emphasis', 'initiation_of_structure',
+  'tolerance_of_uncertainty', 'integration', 'consideration',
+]
+
 // ── SVG Icon set ─────────────────────────────────────────────────────────────
 const Icon = {
   chart: (
@@ -138,12 +143,16 @@ function ChartTooltip({ active, payload, label }) {
 export default function Dashboard() {
   const { user } = useAuth()
   const [data, setData] = useState(null)
+  const [modelComp, setModelComp] = useState(null)
   const [error, setError] = useState('')
 
   useEffect(() => {
     api.get('/assessment/analytics/')
       .then(({ data }) => setData(data))
       .catch(() => setError('Could not load analytics.'))
+    api.get('/assessment/model-comparison/')
+      .then(({ data }) => setModelComp(data))
+      .catch(() => {/* non-critical */})
   }, [])
 
   if (error) return (
@@ -164,8 +173,8 @@ export default function Dashboard() {
   const mainStyle = STYLE_CFG[personal.dominant_style] ?? STYLE_CFG.Transformational
 
   // Radar data — personal avg vs global avg
-  const radarData = Object.entries(FEATURE_LABELS).map(([key, label]) => ({
-    subject: label,
+  const radarData = RADAR_KEYS.map((key) => ({
+    subject: featureLabel(key),
     You: personal.avg_scores[key] ?? 0,
     Global: globalData.avg_scores[key] ?? 0,
     fullMark: 5,
@@ -175,7 +184,7 @@ export default function Dashboard() {
   const trendData = personal.timeline.map((t) => ({
     date: t.date,
     confidence: t.confidence,
-    ...Object.fromEntries(Object.keys(FEATURE_LABELS).map((k) => [FEATURE_LABELS[k].split(' ')[0], t[k]])),
+    ...Object.fromEntries(RADAR_KEYS.map((k) => [featureLabel(k).split(' ')[0], t[k]])),
   }))
 
   // SHAP frequency bar
@@ -257,6 +266,91 @@ export default function Dashboard() {
               color="#F59E0B" light="#FFFBEB"
             />
           </div>
+
+          {/* Survey stats */}
+          {personal.survey && (
+            <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-5 mb-6">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl gradient-brand flex items-center justify-center text-white flex-shrink-0">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-bold text-indigo-900 mb-1">
+                    H3 Satisfaction — {personal.survey.count} response{personal.survey.count !== 1 ? 's' : ''}
+                  </h3>
+                  <div className="grid grid-cols-3 gap-3 mt-2">
+                    {[
+                      { label: 'Relevance',       val: personal.survey.avg_relevance },
+                      { label: 'Personalisation', val: personal.survey.avg_personalisation },
+                      { label: 'Usefulness',      val: personal.survey.avg_usefulness },
+                    ].map((item) => (
+                      <div key={item.label} className="bg-white rounded-xl p-3 text-center">
+                        <div className="text-xl font-extrabold text-indigo-700">{item.val}</div>
+                        <div className="text-xs text-gray-500 mt-0.5">{item.label}</div>
+                        <div className="w-full bg-indigo-100 rounded-full h-1.5 mt-1.5">
+                          <div className="h-1.5 rounded-full bg-brand" style={{ width: `${item.val / 5 * 100}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-indigo-600 mt-2">
+                    {personal.survey.useful_pct}% of responses rated usefulness ≥ 4
+                    {personal.survey.useful_pct >= 70
+                      ? ' — H3 target (70%) met'
+                      : ' — H3 target (70%) not yet met'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* H2 Cosine Similarity Consistency */}
+          {personal.cosine_consistency && (
+            <div className="bg-violet-50 border border-violet-200 rounded-2xl p-5 mb-6">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-violet-600 flex items-center justify-center text-white flex-shrink-0">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-bold text-violet-900">H2 — Cosine Similarity Consistency</h3>
+                    <span className="text-xs bg-violet-100 text-violet-700 font-semibold px-2 py-0.5 rounded-full">
+                      threshold = {personal.cosine_consistency.threshold}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-3">
+                    {[
+                      { label: 'Total Pairs',      val: personal.cosine_consistency.total_pairs },
+                      { label: 'Similar Pairs',    val: personal.cosine_consistency.similar_pairs, sub: `≥ ${personal.cosine_consistency.threshold}` },
+                      { label: 'Consistent Pairs', val: personal.cosine_consistency.consistent_pairs, sub: 'same style' },
+                      {
+                        label: 'Consistency Rate',
+                        val: personal.cosine_consistency.consistency_rate != null
+                          ? `${personal.cosine_consistency.consistency_rate}%`
+                          : '—',
+                        highlight: true,
+                      },
+                    ].map((item) => (
+                      <div key={item.label} className="bg-white rounded-xl p-3 text-center">
+                        <div className={`text-xl font-extrabold ${item.highlight ? 'text-violet-700' : 'text-gray-800'}`}>
+                          {item.val}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-0.5">{item.label}</div>
+                        {item.sub && <div className="text-xs text-gray-400">{item.sub}</div>}
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-violet-600 mt-2">
+                    Pairwise cosine similarity between response vectors. Threshold = 75th percentile of all pairwise similarities.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {hasPersonal ? (
             <>
@@ -406,8 +500,8 @@ export default function Dashboard() {
             >
               <ResponsiveContainer width="100%" height={240}>
                 <RadarChart
-                  data={Object.entries(FEATURE_LABELS).map(([key, label]) => ({
-                    subject: label,
+                  data={RADAR_KEYS.map((key) => ({
+                    subject: featureLabel(key),
                     score: globalData.avg_scores[key] ?? 0,
                     fullMark: 5,
                   }))}
@@ -468,6 +562,107 @@ export default function Dashboard() {
             </Card>
           )}
         </div>
+
+        {/* ── H1 MODEL COMPARISON ──────────────────────────────── */}
+        {modelComp && (
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-1 h-5 bg-gradient-to-b from-violet-500 to-purple-600 rounded-full" />
+              <h2 className="text-sm font-bold text-gray-700 uppercase tracking-widest">H1 — Model Comparison</h2>
+              <span className="text-xs text-gray-400 ml-1">— XGBoost vs baseline classifiers on test split</span>
+            </div>
+            <Card
+              title="Benchmark Results"
+              subtitle={modelComp.description}
+              icon={Icon.chart}
+            >
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100">
+                      <th className="text-left py-2 pr-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Model</th>
+                      <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Accuracy</th>
+                      <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Macro F1</th>
+                      <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Precision</th>
+                      <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Recall</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {modelComp.models.map((m) => (
+                      <tr
+                        key={m.name}
+                        className={`border-b border-gray-50 ${m.selected ? 'bg-indigo-50 rounded-xl' : 'hover:bg-gray-50'}`}
+                      >
+                        <td className="py-3 pr-4">
+                          <div className="flex items-center gap-2">
+                            <span className={`font-medium ${m.selected ? 'text-brand' : 'text-gray-700'}`}>
+                              {m.name}
+                            </span>
+                            {m.selected && (
+                              <span className="text-xs bg-brand text-white px-2 py-0.5 rounded-full font-semibold">Selected</span>
+                            )}
+                            {m.note && (
+                              <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                                *
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="text-right py-3 px-3">
+                          <span className={`font-bold ${m.selected ? 'text-brand' : 'text-gray-700'}`}>
+                            {(m.accuracy * 100).toFixed(1)}%
+                          </span>
+                        </td>
+                        <td className="text-right py-3 px-3">
+                          <div className="flex items-center justify-end gap-2">
+                            <div className="w-16 bg-gray-100 rounded-full h-1.5">
+                              <div
+                                className="h-1.5 rounded-full"
+                                style={{
+                                  width: `${m.macro_f1 * 100}%`,
+                                  backgroundColor: m.selected ? '#4F46E5' : '#94A3B8',
+                                }}
+                              />
+                            </div>
+                            <span className={`font-bold w-10 text-right ${m.selected ? 'text-brand' : 'text-gray-700'}`}>
+                              {(m.macro_f1 * 100).toFixed(1)}%
+                            </span>
+                          </div>
+                        </td>
+                        <td className="text-right py-3 px-3 text-gray-500">{(m.macro_precision * 100).toFixed(1)}%</td>
+                        <td className="text-right py-3 px-3 text-gray-500">{(m.macro_recall * 100).toFixed(1)}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {modelComp.models.find((m) => m.note) && (
+                <p className="text-xs text-amber-600 mt-3 pt-3 border-t border-gray-100">
+                  * Logistic Regression anomalously high — likely reflects the synthetic dataset's linear separability, not real-world generalisation.
+                </p>
+              )}
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <ResponsiveContainer width="100%" height={160}>
+                  <BarChart
+                    data={modelComp.models.map((m) => ({ name: m.short, f1: parseFloat((m.macro_f1 * 100).toFixed(1)), selected: m.selected }))}
+                    margin={{ left: 0, right: 10, top: 5, bottom: 5 }}
+                  >
+                    <CartesianGrid stroke="#F1F5F9" strokeDasharray="4 3" vertical={false} />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                    <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11 }} />
+                    <Tooltip formatter={(v) => `${v}%`} content={<ChartTooltip />} />
+                    <Bar dataKey="f1" name="Macro F1" radius={[6, 6, 0, 0]}>
+                      {modelComp.models.map((m, i) => (
+                        <Cell key={i} fill={m.selected ? '#4F46E5' : '#CBD5E1'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+          </div>
+        )}
+
       </div>
     </div>
   )

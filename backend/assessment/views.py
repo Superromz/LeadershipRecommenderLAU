@@ -1,15 +1,21 @@
+import json
 from collections import Counter, defaultdict
+from itertools import combinations
 
+import numpy as np
+from django.contrib.auth import get_user_model
+from django.db.models import Avg
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from .models import AssessmentResult
+from .models import AssessmentResult, SurveyResponse
 from .serializers import (
     AssessmentSubmitSerializer,
     AssessmentResultSerializer,
     AssessmentListSerializer,
+    SurveySerializer,
 )
 from core.inference import predict
 from core.shap_engine import compute_shap
@@ -151,9 +157,48 @@ def analytics(request):
     else:
         avg_scores = {f: 0 for f in BEHAVIOURAL_FIELDS}
 
-    # Consistency: fraction of assessments matching the most common style
+    # Dominant style
     dominant_style = style_dist.most_common(1)[0][0] if style_dist else None
-    consistency    = round((style_dist[dominant_style] / total * 100), 1) if total else 0
+
+    # ── H2 Cosine-similarity consistency (proposal Section 5.7 / 8.3) ─────────
+    # For each pair of the user's assessments, compute cosine similarity between
+    # their 6-dimensional Likert response vectors. Threshold = 75th percentile of
+    # all pairwise similarities (empirical, as specified in proposal).
+    # Report: similar_pairs, consistent_pairs, consistency_rate, threshold.
+    cosine_consistency = None
+    if total >= 2:
+        vectors = np.array([[r[f] for f in BEHAVIOURAL_FIELDS] for r in user_list], dtype=float)
+        norms   = np.linalg.norm(vectors, axis=1, keepdims=True)
+        norms   = np.where(norms == 0, 1e-10, norms)         # avoid div-by-zero
+        unit    = vectors / norms
+
+        pairs        = list(combinations(range(total), 2))
+        similarities = [float(np.dot(unit[i], unit[j])) for i, j in pairs]
+
+        # Empirical threshold: 75th percentile of all pairwise similarities
+        threshold = float(np.percentile(similarities, 75)) if len(similarities) > 1 else 0.9
+
+        similar_pairs    = [(i, j, s) for (i, j), s in zip(pairs, similarities) if s >= threshold]
+        consistent_pairs = [
+            (i, j, s) for i, j, s in similar_pairs
+            if user_list[i]['predicted_class_name'] == user_list[j]['predicted_class_name']
+        ]
+        consistency_rate = (
+            round(len(consistent_pairs) / len(similar_pairs) * 100, 1)
+            if similar_pairs else None
+        )
+
+        cosine_consistency = {
+            'total_pairs':       len(pairs),
+            'similar_pairs':     len(similar_pairs),
+            'consistent_pairs':  len(consistent_pairs),
+            'consistency_rate':  consistency_rate,
+            'threshold':         round(threshold, 4),
+            'method':            'cosine_similarity',
+        }
+
+    # Simple % matching dominant style (kept for backward compat)
+    consistency = round((style_dist[dominant_style] / total * 100), 1) if total else 0
 
     # Score timeline (last 8)
     timeline = [
@@ -174,13 +219,14 @@ def analytics(request):
     shap_frequency = [{'feature': k, 'count': v} for k, v in shap_freq.most_common()]
 
     personal = {
-        'total_assessments': total,
-        'dominant_style':    dominant_style,
-        'consistency_pct':   consistency,
+        'total_assessments':  total,
+        'dominant_style':     dominant_style,
+        'consistency_pct':    consistency,
+        'cosine_consistency': cosine_consistency,
         'style_distribution': [{'style': k, 'count': v} for k, v in style_dist.items()],
-        'avg_scores':        avg_scores,
-        'timeline':          timeline,
-        'shap_frequency':    shap_frequency,
+        'avg_scores':         avg_scores,
+        'timeline':           timeline,
+        'shap_frequency':     shap_frequency,
     }
 
     # ── Global ────────────────────────────────────────────────────────────────
@@ -222,7 +268,6 @@ def analytics(request):
     else:
         global_avg = {f: 0 for f in BEHAVIOURAL_FIELDS}
 
-    from django.contrib.auth import get_user_model
     User = get_user_model()
     total_users = User.objects.count()
 
@@ -235,4 +280,63 @@ def analytics(request):
         'avg_scores':        global_avg,
     }
 
+    # ── Survey aggregate ──────────────────────────────────────────────────────
+    survey_qs = SurveyResponse.objects.filter(assessment__user=request.user)
+    survey_count = survey_qs.count()
+    if survey_count:
+        avgs = survey_qs.aggregate(
+            avg_relevance=Avg('relevance'),
+            avg_personalisation=Avg('personalisation'),
+            avg_usefulness=Avg('usefulness'),
+        )
+        useful_count = survey_qs.filter(usefulness__gte=4).count()
+        personal['survey'] = {
+            'count':               survey_count,
+            'avg_relevance':       round(avgs['avg_relevance'], 2),
+            'avg_personalisation': round(avgs['avg_personalisation'], 2),
+            'avg_usefulness':      round(avgs['avg_usefulness'], 2),
+            'useful_pct':          round(useful_count / survey_count * 100, 1),
+        }
+    else:
+        personal['survey'] = None
+
     return Response({'personal': personal, 'global': global_data})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def submit_survey(request, pk):
+    """
+    POST /api/assessment/<id>/survey/
+    Saves the H3 post-assessment satisfaction survey.
+    """
+    try:
+        assessment = AssessmentResult.objects.get(pk=pk, user=request.user)
+    except AssessmentResult.DoesNotExist:
+        return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if hasattr(assessment, 'survey'):
+        return Response({'detail': 'Survey already submitted.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    serializer = SurveySerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    serializer.save(assessment=assessment)
+    return Response({'detail': 'Survey saved. Thank you!'}, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def model_comparison(request):
+    """
+    GET /api/assessment/model-comparison/
+    Returns H1 benchmark comparison data from the research notebooks.
+    """
+    from django.conf import settings
+    path = settings.MODELS_DIR / 'model_comparison.json'
+    if not path.exists():
+        return Response({'detail': 'Comparison data not found.'}, status=status.HTTP_404_NOT_FOUND)
+    with open(path) as f:
+        data = json.load(f)
+    return Response(data)

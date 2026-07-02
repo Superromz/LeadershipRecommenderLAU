@@ -1,0 +1,47 @@
+{
+  "description": "H1 benchmark comparison — XGBoost vs baselines on synthetic leadership dataset (test split)",
+  "models": [
+    {
+      "name": "Majority-Class Baseline",
+      "short": "Baseline",
+      "accuracy": 0.4039,
+      "macro_precision": 0.1010,
+      "macro_recall": 0.2500,
+      "macro_f1": 0.1438
+    },
+    {
+      "name": "Decision Tree",
+      "short": "Decision Tree",
+      "accuracy": 0.7113,
+      "macro_precision": 0.7310,
+      "macro_recall": 0.7180,
+      "macro_f1": 0.7234
+    },
+    {
+      "name": "Random Forest",
+      "short": "Random Forest",
+      "accuracy": 0.8315,
+      "macro_precision": 0.8886,
+      "macro_recall": 0.8051,
+      "macro_f1": 0.8327
+    },
+    {
+      "name": "XGBoost (selected)",
+      "short": "XGBoost",
+      "accuracy": 0.9078,
+      "macro_precision": 0.9223,
+      "macro_recall": 0.9054,
+      "macro_f1": 0.9115,
+      "selected": true
+    },
+    {
+      "name": "Logistic Regression",
+      "short": "Log. Reg.",
+      "accuracy": 0.9993,
+      "macro_precision": 0.9987,
+      "macro_recall": 0.9993,
+      "macro_f1": 0.9990,
+      "note": "Anomalously high — likely reflects synthetic data structure"
+    }
+  ]
+}

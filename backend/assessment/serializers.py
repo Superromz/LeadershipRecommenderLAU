@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import AssessmentResult
+from .models import AssessmentResult, SurveyResponse
 
 
 class AssessmentSubmitSerializer(serializers.Serializer):
@@ -22,6 +22,8 @@ class AssessmentSubmitSerializer(serializers.Serializer):
 
 
 class AssessmentResultSerializer(serializers.ModelSerializer):
+    has_survey = serializers.SerializerMethodField()
+
     class Meta:
         model  = AssessmentResult
         fields = [
@@ -33,13 +35,32 @@ class AssessmentResultSerializer(serializers.ModelSerializer):
             'predicted_class', 'predicted_class_name', 'probabilities',
             'top3_shap_features', 'all_shap_values',
             'counterfactual', 'recommendations',
+            'has_survey',
         ]
         read_only_fields = fields
+
+    def get_has_survey(self, obj):
+        return hasattr(obj, 'survey')
 
 
 class AssessmentListSerializer(serializers.ModelSerializer):
     """Lightweight serializer for the history list view."""
+    has_survey = serializers.SerializerMethodField()
+
     class Meta:
         model  = AssessmentResult
-        fields = ['id', 'created_at', 'predicted_class_name', 'probabilities']
+        fields = ['id', 'created_at', 'predicted_class_name', 'probabilities', 'has_survey']
         read_only_fields = fields
+
+    def get_has_survey(self, obj):
+        return hasattr(obj, 'survey')
+
+
+class SurveySerializer(serializers.ModelSerializer):
+    relevance       = serializers.IntegerField(min_value=1, max_value=5)
+    personalisation = serializers.IntegerField(min_value=1, max_value=5)
+    usefulness      = serializers.IntegerField(min_value=1, max_value=5)
+
+    class Meta:
+        model  = SurveyResponse
+        fields = ['relevance', 'personalisation', 'usefulness']

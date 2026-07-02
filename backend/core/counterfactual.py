@@ -51,10 +51,16 @@ def generate_counterfactual(X_transformed: np.ndarray, original_class: int,
 
                 new_class = int(classifier.predict(candidate.reshape(1, -1))[0])
                 if new_class != original_class:
+                    # Proximity: Euclidean distance in transformed feature space
+                    proximity_distance = float(np.sqrt(sum(
+                        (c['new_value_std'] - c['original_value_std']) ** 2
+                        for c in changes
+                    )))
                     return {
                         'original_class_name':        CLASS_NAMES[original_class],
                         'counterfactual_class_name':  CLASS_NAMES[new_class],
                         'n_features_changed':         n_changes,
+                        'proximity_distance':         round(proximity_distance, 4),
                         'changes':                    changes,
                         'valid':                      True,
                     }

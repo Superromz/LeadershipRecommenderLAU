@@ -48,9 +48,11 @@ export default function Navbar() {
             History
           </Link>
           <div className="ml-3 pl-3 border-l border-gray-200 flex items-center gap-2">
-            <div className="w-7 h-7 rounded-full gradient-brand flex items-center justify-center text-white text-xs font-bold">
-              {user.email?.[0]?.toUpperCase()}
-            </div>
+            <Link to="/profile">
+              <div className="w-7 h-7 rounded-full gradient-brand flex items-center justify-center text-white text-xs font-bold hover:opacity-80 transition-opacity">
+                {user.email?.[0]?.toUpperCase()}
+              </div>
+            </Link>
             <button
               onClick={handleLogout}
               className="text-xs text-gray-400 hover:text-gray-700 transition-colors"

@@ -13,9 +13,13 @@ venv/
 # macOS
 .DS_Store
 
-# Model artifacts (large files — store separately if needed)
+# Model artifacts — exclude by default, but allow the models/ directory
 *.pkl
 *.joblib
+!models/
+!models/*.pkl
+!models/*.joblib
+!models/*.json
 
 # IDE
 .vscode/

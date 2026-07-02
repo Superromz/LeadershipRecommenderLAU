@@ -1,0 +1,48 @@
+{
+  "model_name": "XGBoost",
+  "test_accuracy": 0.9078,
+  "test_macro_f1": 0.9115,
+  "test_macro_precision": 0.9223,
+  "test_macro_recall": 0.9054,
+  "cv_macro_f1_mean": 0.9243,
+  "cv_macro_f1_std": 0.0084,
+  "train_size": 5556,
+  "test_size": 1389,
+  "n_features_input": 18,
+  "n_features_transformed": 30,
+  "feature_groups": {
+    "behavioural": [
+      "Role_Assumption",
+      "Production_Emphasis",
+      "Initiation_of_Structure",
+      "Tolerance_of_Uncertainty",
+      "Integration",
+      "Consideration"
+    ],
+    "cultural": [
+      "Power_Distance",
+      "Individualism",
+      "Masculinity",
+      "Uncertainty_Avoidance",
+      "Long_Term_Orientation",
+      "Indulgence"
+    ],
+    "numeric_demographic": [
+      "Age",
+      "Work_Experience_Years"
+    ],
+    "categorical_demographic": [
+      "Country",
+      "Gender",
+      "Education_Level",
+      "Position_Level"
+    ]
+  },
+  "target_classes": {
+    "0": "Laissez-Faire",
+    "1": "Supportive",
+    "2": "Transactional",
+    "3": "Transformational"
+  },
+  "h1_supported": false
+}

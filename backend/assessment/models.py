@@ -47,3 +47,16 @@ class AssessmentResult(models.Model):
 
     def __str__(self):
         return f'{self.user.email} — {self.predicted_class_name} ({self.created_at:%Y-%m-%d})'
+
+
+class SurveyResponse(models.Model):
+    """H3 post-assessment satisfaction survey (3 Likert items, 1-5 scale)."""
+    assessment      = models.OneToOneField(AssessmentResult, on_delete=models.CASCADE,
+                                           related_name='survey')
+    relevance       = models.IntegerField()        # "The style description felt relevant to me"
+    personalisation = models.IntegerField()        # "The feedback felt personalised"
+    usefulness      = models.IntegerField()        # "I found the recommendations useful"
+    created_at      = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'Survey for assessment {self.assessment_id}'
